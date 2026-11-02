@@ -152,6 +152,9 @@ app.delete('/api/vehiculos/:id', verificarToken, (req, res) => {
     });
 });
 
+// Hace que la carpeta "public" sea visible como archivos estáticos en la web
+app.use(express.static('public'));
+
 // ------- INICIAR EL SERVIDOR:
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
