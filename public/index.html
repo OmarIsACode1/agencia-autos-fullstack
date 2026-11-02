@@ -8,22 +8,41 @@
     </head>
     <body>
         <div class="container">
-            <h1>SimplyAwesome - Gestión de Autos</h1>
+            <!-- Login -->
+            <div id="seccion-login">
+                <h1>SimpleAwesome - Iniciar Sesión</h1>
+                <div class="form-group">
+                    <input type="email" id="login-email" placeholder="Correo electrónico">
+                    <input type="password" id="login-password" placeholder="Contraseña">
+                    <button id="btn-login">Ingresar</button>
+                </div>
+                <p style="text-align: center; font-size:14px; color: #666;">
+                    Usa las credenciales de tu base de datos o regístrate en la API.
+                </p>
+            </div>
 
-            <!-- Formulario para agregar vehículo -->
-             <div class="form-group">
-                <input type="text" id="marca" placeholder="Marca (Ej. Toyota)">
-                <input type="text" id="modelo" placeholder="Modelo (Ej. Yaris)">
-                <input type="number" id="anio" placeholder="Año">
-                <input type="number" id="precio" placeholder="Precio ($)">
-                <input type="text" id="estado" placeholder="Estado (Disponible, Vendido, En Reparación)">
-                <button id="btn-guardar">Registrar Vehículo</button>
-             </div>
+            <!-- Panel de gestión de autos (Después de hacer login)-->
+             <div id="section-app" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h1>Gestión de Autos</h1>
+                    <button id="btn-logout" style="background-color: #dc2626; padding: 5px 10px; font-size: 12px;">Cerrar Sesión</button>
+                </div>
+                
+                <!-- Formulario para agregar vehículo -->
+                 <div class="form-group">
+                    <input type="text" id="marca" placeholder="Marca (Ej. Toyota)">
+                    <input type="text" id="modelo" placeholder="Modelo (Ej. Yaris)">
+                    <input type="number" id="anio" placeholder="Año">
+                    <input type="number" id="precio" placeholder="Precio ($)">
+                    <input type="text" id="estado" placeholder="Estado (Disponible, Vendido, En Reparación)">
+                    <button id="btn-guardar">Registrar Vehículo</button>
+                 </div>
 
-             <h2>Inventario Actual</h2>
-             <ul id="lista-vehiculos"></ul>
+                 <h2>Inventario Actual</h2>
+                 <ul id="lista-vehiculos"></ul>
+            </div>
         </div>
-
+        
         <script src="app.js"></script>
     </body>
 </html>
