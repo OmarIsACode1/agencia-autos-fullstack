@@ -123,6 +123,7 @@ async function cargarVehiculos() {
                     - $${vehiculo.precio} <em>[${vehiculo.estado}]</em>
                 </div>
                 <div>
+                    <button onclick="editarVehiculo(${vehiculo.id})" style:"background-color: #10b981;">Editar</button>
                     <button onclick="eliminarVehiculo(${vehiculo.id})" style="background-color: #dc2626;">Eliminar</button>
                 </div>
             `;
@@ -134,6 +135,90 @@ async function cargarVehiculos() {
         if (listaUl) {
             listaUl.innerHTML = '<li>Error de conexión al cargar el inventario.</li>';
         }
+    }
+}
+
+// Función para editar un vehículo existente
+async function editarVehiculo(id) {
+
+    // 1. Obtener los vehículos de la base de datos
+    const respuestaVehiculos = await fetch(`${API_URL}/vehiculos`);
+    const vehiculos = await respuestaVehiculos.json();
+
+    // 2. Buscar el vehículo que queremos editar
+    const vehiculo = vehiculos.find(v => v.id == id);
+
+    if (!vehiculo) {
+        alert('No se encontró el vehículo.');
+        return;
+    }
+
+    // 3. Solicitar los nuevos datos
+    const marca = prompt('Nueva marca:', vehiculo.marca);
+    if (marca === null) return;
+
+    const modelo = prompt('Nuevo modelo:', vehiculo.modelo);
+    if (modelo === null) return;
+
+    const anio = prompt('Nuevo año:', vehiculo.anio);
+    if (anio === null) return;
+
+    const precio = prompt('Nuevo precio:', vehiculo.precio);
+    if (precio === null) return;
+
+    const estado = prompt('Nuevo estado:', vehiculo.estado);
+    if (estado === null) return;
+
+    // 4. Validar los datos
+    if (!marca.trim() || !modelo.trim() || !anio.trim() || !precio.trim() || !estado.trim()) {
+        alert('Todos los campos son obligatorios.');
+        return;
+    }
+
+    if (!Number.isFinite(Number(anio)) || !Number.isFinite(Number(precio))) {
+        alert('El año y el precio deben ser números.');
+        return;
+    }
+
+    // 5. Preparar el objeto con los nuevos datos
+    const vehiculoActualizado = {
+        marca,
+        modelo,
+        anio: Number(anio),
+        precio: Number(precio),
+        estado
+    };
+
+    // 6. Obtener el token JWT
+    const token = localStorage.getItem('token');
+
+    try {
+
+        // 7. Enviar los cambios al servidor mediante PUT
+        const respuesta = await fetch(`${API_URL}/vehiculos/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(vehiculoActualizado)
+        });
+
+        const resultado = await respuesta.json();
+
+        if (respuesta.ok) {
+            alert('¡Vehículo actualizado correctamente!');
+
+            // 8. Actualizar el inventario
+            cargarVehiculos();
+
+        } else {
+            alert(`Error: ${resultado.error || 'No se pudo actualizar el vehículo.'}`);
+        }
+
+    } catch (error) {
+        console.error('Error al editar vehículo:', error);
+        alert('No se pudo conectar con el servidor.');
     }
 }
 
