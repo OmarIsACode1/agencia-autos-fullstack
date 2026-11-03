@@ -65,8 +65,16 @@ app.post('/api/login', (req, res) => {
                 return res.status(500).json({ error: 'Falta configurar JWT_SECRET en el archivo .env' });
             }
 
-            // Generar el token JWT que expira en 1 hora
-            const token = jwt.sign({ id: usuario.id, email: usuario.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+            // Generar el token JWT y guardar el rol de usuario
+            const token = jwt.sign(
+                {   
+                    id: usuario.id,
+                    email: usuario.email,
+                    rol: usuario.rol
+                },
+                process.env.JWT_SECRET,
+                { expiresIn: '1h' }
+            );
 
             res.json({ mensaje: 'Login exitoso', token });
         } catch (error) {
@@ -86,8 +94,8 @@ app.post('/api/registro', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
 
-        const query = 'INSERT INTO usuarios (email, password) VALUES (?, ?)';
-        db.query(query, [email, passwordHash], (err, resultado) => {
+        const query = 'INSERT INTO usuarios (email, password, rol) VALUES (?, ?, ?)';
+        db.query(query, [email, passwordHash, 'cliente'], (err, resultado) => {
             if (err) {
                 return res.status(500).json({ error: 'El usuario ya existe o hubo un error en el registro.' });
             }
@@ -115,6 +123,16 @@ const verificarToken = (req, res, next) => {
     });
 };
 
+// Middleware para permitir únicamente administradores
+const verificarAdmin = (req, res, next) => {
+    if (req.usuario.rol !== 'admin') {
+        return res.status(403).json({
+            error: 'Acceso denegado. Se requieren permisos de administrador.'
+        });
+    }
+    next();
+};
+
 // 2. Operaciones CRUD para vehículos
 // READ. Obtener todos los vehículos (Operación pública)
 app.get('/api/vehiculos', (req, res) => {
@@ -127,7 +145,7 @@ app.get('/api/vehiculos', (req, res) => {
 });
 
 // CREATE. Agregar un nuevo vehículo (Protegido con JWT)
-app.post('/api/vehiculos', verificarToken, (req, res) => {
+app.post('/api/vehiculos', verificarToken, verificarAdmin, (req, res) => {
     const {marca, modelo, anio, precio, estado} = req.body;
 
     const query = 'INSERT INTO vehiculos (marca, modelo, anio, precio, estado) VALUES (?, ?, ?, ?, ?)';
@@ -140,7 +158,7 @@ app.post('/api/vehiculos', verificarToken, (req, res) => {
 });
 
 // UPDATE: Modificar un vehículo existente (Protegido con JWT)
-app.put('/api/vehiculos/:id', verificarToken, (req, res) => {
+app.put('/api/vehiculos/:id', verificarToken, verificarAdmin, (req, res) => {
     const { id } = req.params;
     const { marca, modelo, anio, precio, estado } = req.body;
 
@@ -154,7 +172,7 @@ app.put('/api/vehiculos/:id', verificarToken, (req, res) => {
 });
 
 // DELETE: Eliminar un vehículo (Protegido con JWT)
-app.delete('/api/vehiculos/:id', verificarToken, (req, res) => {
+app.delete('/api/vehiculos/:id', verificarToken, verificarAdmin, (req, res) => {
     const { id } = req.params;
 
     db.query('DELETE FROM vehiculos WHERE id = ?', [id], (err, resultado) => {

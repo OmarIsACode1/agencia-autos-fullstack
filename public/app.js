@@ -7,6 +7,8 @@ const seccionApp = document.getElementById('seccion-app');
 const btnLogin = document.getElementById('btn-login');
 const btnLogout = document.getElementById('btn-logout');
 
+let rolUsuario = null;
+
 // Verificar si ya hay una sesión activa al cargar la página
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('token');
@@ -78,10 +80,40 @@ document.getElementById('btn-registrar').addEventListener('click', async () => {
     }
 });
 
+// Obtener el rol del usuario desde el token JWT
+function obtenerRolUsuario() {
+    const token = localStorage.getItem('token');
+
+    if (!token) return null;
+
+    try {
+        const parteToken = token.split('.')[1]
+            .replace(/-/g, '+')
+            .replace(/_/g, '/');
+
+        const contenido = JSON.parse(atob(parteToken));
+
+        return contenido.rol || null;
+    } catch (error) {
+        console.error('No se pudo leer el token:', error);
+        return null;
+    }
+}
+
 // Función para cambiar la vista al panel principal
 function mostrarApp() {
+    rolUsuario = obtenerRolUsuario();
+
+    const formularioAdmin = document.getElementById('formulario-admin');
+    
+    if (formularioAdmin) {
+        formularioAdmin.style.display =
+        rolUsuario === 'admin' ? 'block' : 'none';
+    }
+
     seccionLogin.style.display = 'none';
     seccionApp.style.display = 'block';
+
     cargarVehiculos();
 }
 
@@ -102,9 +134,9 @@ async function cargarVehiculos() {
 
         const listaUl = document.getElementById('lista-vehiculos');
         if (!listaUl) return;
+
         listaUl.innerHTML = '';
 
-        // Validar que la respuesta sea un arreglo para evitar que la app colapse en blanco
         if (!Array.isArray(vehiculos)) {
             listaUl.innerHTML = `<li>Error: ${vehiculos.error || 'No se pudo obtener el inventario'}</li>`;
             return;
@@ -117,21 +149,43 @@ async function cargarVehiculos() {
 
         vehiculos.forEach(vehiculo => {
             const li = document.createElement('li');
-            li.innerHTML = `
+
+            // Información que pueden consultar todos los usuarios
+            let contenido = `
                 <div>
-                    <strong>${vehiculo.marca} ${vehiculo.modelo}</strong> (${vehiculo.anio}) 
-                    - $${vehiculo.precio} <em>[${vehiculo.estado}]</em>
-                </div>
-                <div>
-                    <button onclick="editarVehiculo(${vehiculo.id})" style:"background-color: #10b981;">Editar</button>
-                    <button onclick="eliminarVehiculo(${vehiculo.id})" style="background-color: #dc2626;">Eliminar</button>
+                    <strong>${vehiculo.marca} ${vehiculo.modelo}</strong>
+                    (${vehiculo.anio})
+                    - $${vehiculo.precio}
+                    <em>[${vehiculo.estado}]</em>
                 </div>
             `;
+
+            // Opciones exclusivas para administradores
+            if (rolUsuario === 'admin') {
+                contenido += `
+                    <div>
+                        <button onclick="editarVehiculo(${vehiculo.id})"
+                            style="background-color: #10b981;">
+                            Editar
+                        </button>
+
+                        <button onclick="eliminarVehiculo(${vehiculo.id})"
+                            style="background-color: #dc2626;">
+                            Eliminar
+                        </button>
+                    </div>
+                `;
+            }
+
+            li.innerHTML = contenido;
             listaUl.appendChild(li);
         });
+
     } catch (error) {
         console.error('Error al obtener los vehículos:', error);
+
         const listaUl = document.getElementById('lista-vehiculos');
+
         if (listaUl) {
             listaUl.innerHTML = '<li>Error de conexión al cargar el inventario.</li>';
         }
