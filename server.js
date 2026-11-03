@@ -38,6 +38,44 @@ app.get('/', (req, res) => {
     res.json({ mensaje: 'Bienvenido al API REST de la agencia de autos SimplyAwesome'});
 });
 
+// Ruta para iniciar sesión (con manejo de errores protegido para que no se caiga el servidor)
+app.post('/api/login', (req, res) => {
+    const {email, password} = req.body;
+
+    const query = 'SELECT * FROM usuarios WHERE email = ?';
+    db.query(query, [email], async (err, resultados) => {
+        try {
+            if (err) {
+                return res.status(500).json({ error: 'Error en la base de datos.' });
+            }
+            if (!resultados || resultados.length === 0) {
+                return res.status(401).json({ error: 'Credenciales inválidas (usuario no encontrado).' });
+            }
+
+            const usuario = resultados[0];
+
+            // Verificar la contraseña cifrada
+            const esValida = await bcrypt.compare(password, usuario.password);
+            if (!esValida) {
+                return res.status(401).json({ error: 'Credenciales inválidas (contraseña incorrecta).' });
+            }
+
+            // Validar que exista la clave secreta
+            if (!process.env.JWT_SECRET) {
+                return res.status(500).json({ error: 'Falta configurar JWT_SECRET en el archivo .env' });
+            }
+
+            // Generar el token JWT que expira en 1 hora
+            const token = jwt.sign({ id: usuario.id, email: usuario.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+            res.json({ mensaje: 'Login exitoso', token });
+        } catch (error) {
+            console.error('Error en el servidor:', error);
+            res.status(500).json({ error: 'Error interno en el servidor.' });
+        }
+    });
+});
+
 // 1. Autenticación (Registro y Login con JWT)
 // Ruta para registrar un nuevo usuario (cifra la contraseña con bcryptjs)
 app.post('/api/registro', async (req, res) => {
@@ -58,31 +96,6 @@ app.post('/api/registro', async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'Error en el servidor al procesar el registro.' });
     }
-});
-
-// Ruta para iniciar sesión (genera un token JWT)
-app.post('/api/login', (req, res) => {
-    const {email, password} = req.body;
-
-    const query = 'SELECT * FROM usuarios WHERE email = ?';
-    db.query(query, [email], async (err, resultados) => {
-        if (err || resultados.length === 0) {
-            return res.status(401).json({error: 'Credenciales inválidas (usuario no encontrado).'});
-            }
-
-            const usuario = resultados[0];
-
-            // Verificar la contraseña cifrada
-            const esValida = await bcrypt.compare(password, usuario.password);
-            if (!esValida) {
-                return res.status(401).json({error: 'Credenciales inválidas (contraseña incorrecta).'});
-            }
-
-            // Generar el token JWT que expira en 1 hora
-            const token = jwt.sign({ id: usuario.id, email: usuario.email }, process.env.JWT_SECRET, {expiresIn: '1h'});
-
-            res.json({mensaje: 'Login exitoso', token});
-    });
 });
 
 // Middleware de autenticación para proteger rutas CRUD

@@ -48,6 +48,36 @@ btnLogin.addEventListener('click', async () => {
     }
 });
 
+// Lógica para registrarse directamente desde la interfaz
+document.getElementById('btn-registrar').addEventListener('click', async () => {
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+
+    if (!email || !password) {
+        alert('Por favor, escribe un correo y una contraseña para registrarte.');
+        return;
+    }
+
+    try {
+        const respuesta = await fetch(`${API_URL}/registro`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+
+        const resultado = await respuesta.json();
+
+        if (respuesta.ok) {
+            alert('¡Usuario registrado con éxito! Ahora haz clic en "Ingresar".');
+        } else {
+            alert(`Error: ${resultado.error || 'No se pudo registrar'}`);
+        }
+    } catch (error) {
+        console.error('Error en el registro:', error);
+        alert('No se pudo conectar con el servidor.');
+    }
+});
+
 // Función para cambiar la vista al panel principal
 function mostrarApp() {
     seccionLogin.style.display = 'none';
@@ -64,14 +94,21 @@ btnLogout.addEventListener('click', () => {
     document.getElementById('login-password').value = '';
 });
 
-// Función para obtener la lista de vehículos desde MySQL y renderizarlos en el DOM
+// Función para obtener la lista de vehículos desde MySQL y renderizarlos de forma segura
 async function cargarVehiculos() {
     try {
         const respuesta = await fetch(`${API_URL}/vehiculos`);
         const vehiculos = await respuesta.json();
 
         const listaUl = document.getElementById('lista-vehiculos');
+        if (!listaUl) return;
         listaUl.innerHTML = '';
+
+        // Validar que la respuesta sea un arreglo para evitar que la app colapse en blanco
+        if (!Array.isArray(vehiculos)) {
+            listaUl.innerHTML = `<li>Error: ${vehiculos.error || 'No se pudo obtener el inventario'}</li>`;
+            return;
+        }
 
         if (vehiculos.length === 0) {
             listaUl.innerHTML = '<li>No hay vehículos registrados en la base de datos.</li>';
@@ -93,6 +130,10 @@ async function cargarVehiculos() {
         });
     } catch (error) {
         console.error('Error al obtener los vehículos:', error);
+        const listaUl = document.getElementById('lista-vehiculos');
+        if (listaUl) {
+            listaUl.innerHTML = '<li>Error de conexión al cargar el inventario.</li>';
+        }
     }
 }
 
